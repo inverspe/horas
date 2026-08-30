@@ -237,7 +237,7 @@ function showTab(tab) {
   if (tab === 'history') renderHistory();
   if (tab === 'stats') renderStats();
   if (tab === 'settings') { fillSettings(); diagnostics(); }
-  window.scrollTo(0, 0);
+  $(`view-${tab}`).scrollTop = 0; // .view is the scroller now, not the window
 }
 
 function fillSettings() {
