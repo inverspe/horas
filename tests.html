@@ -1,0 +1,102 @@
+<!doctype html>
+<meta charset="utf-8">
+<title>Horas — logic tests</title>
+<style>
+ body{font:14px/1.5 ui-monospace,Menlo,Consolas,monospace;padding:20px;max-width:820px;margin:auto}
+ .pass{color:#15803d} .fail{color:#dc2626;font-weight:700} h1{font-size:18px}
+ #summary{padding:10px;border-radius:8px;margin:14px 0;font-weight:700}
+</style>
+<h1>Horas — logic tests</h1>
+<div id="summary">running…</div>
+<div id="out"></div>
+<script type="module">
+import * as S from './stats.js';
+
+const results = [];
+const eq = (name, got, want) => {
+  const ok = JSON.stringify(got) === JSON.stringify(want);
+  results.push({ name, ok, got, want });
+};
+
+// --- date helpers -----------------------------------------------------------
+eq('localDate formats local Y-M-D', S.localDate(new Date(2026, 0, 5)), '2026-01-05');
+eq('localDate does not shift late-evening dates',
+   S.localDate(new Date(2026, 2, 14, 23, 30)), '2026-03-14');
+eq('addDays crosses month end', S.addDays('2026-01-31', 1), '2026-02-01');
+eq('addDays crosses year end', S.addDays('2025-12-31', 1), '2026-01-01');
+eq('addDays handles leap day', S.addDays('2028-02-28', 1), '2028-02-29');
+eq('addDays negative', S.addDays('2026-03-01', -1), '2026-02-28');
+eq('daysBetween', S.daysBetween('2026-01-01', '2026-01-08'), 7);
+
+// --- aggregation ------------------------------------------------------------
+const mk = (date, minutes, source = '', kind = 'video') => ({ id: date + minutes + source, date, minutes, source, kind });
+const set = [mk('2026-03-01', 30, 'DS'), mk('2026-03-01', 15, 'Pod', 'audio'), mk('2026-03-03', 60, 'DS')];
+eq('totalMinutes', S.totalMinutes(set), 105);
+eq('byDay merges same-day sessions', [...S.byDay(set)], [['2026-03-01', 45], ['2026-03-03', 60]]);
+eq('bySource sorts desc', S.bySource(set), [{source:'DS',minutes:90},{source:'Pod',minutes:15}]);
+eq('bySource labels blanks', S.bySource([mk('2026-03-01', 5)]), [{source:'Unlabelled',minutes:5}]);
+eq('byKind splits', S.byKind(set), [{kind:'video',minutes:90},{kind:'audio',minutes:15}]);
+eq('minutesInRange is inclusive', S.minutesInRange(set, '2026-03-01', '2026-03-01'), 45);
+
+// --- streak -----------------------------------------------------------------
+const days = (...ds) => ds.map((d) => mk(d, 30));
+eq('streak counts back from today',
+   S.streak(days('2026-03-10','2026-03-09','2026-03-08'), '2026-03-10'), 3);
+eq('unlogged today does NOT break streak',
+   S.streak(days('2026-03-09','2026-03-08'), '2026-03-10'), 2);
+eq('a full missed day DOES break streak',
+   S.streak(days('2026-03-08','2026-03-07'), '2026-03-10'), 0);
+eq('gap stops the count',
+   S.streak(days('2026-03-10','2026-03-08','2026-03-07'), '2026-03-10'), 1);
+eq('empty history', S.streak([], '2026-03-10'), 0);
+eq('zero-minute day is not a streak day',
+   S.streak([mk('2026-03-10', 0), mk('2026-03-09', 30)], '2026-03-10'), 1);
+eq('longestStreak finds best run',
+   S.longestStreak(days('2026-03-01','2026-03-02','2026-03-03','2026-03-09')), 3);
+
+// --- windows ----------------------------------------------------------------
+const l7 = S.lastNDays(days('2026-03-10','2026-03-08'), 7, '2026-03-10');
+eq('lastNDays length', l7.length, 7);
+eq('lastNDays is oldest-first', [l7[0].date, l7[6].date], ['2026-03-04', '2026-03-10']);
+eq('lastNDays zero-fills gaps', l7.map(d => d.minutes), [0,0,0,0,30,0,30]);
+eq('weekStart is Monday (from a Sunday)', S.weekStart('2026-03-08'), '2026-03-02');
+eq('weekStart on a Monday is itself', S.weekStart('2026-03-02'), '2026-03-02');
+
+// --- milestones -------------------------------------------------------------
+const MS = [50, 150, 300, 600, 1000, 1500];
+eq('below first milestone', S.milestoneProgress(0, MS).level, 0);
+eq('halfway to 50h is 50%', S.milestoneProgress(25, MS).pct, 0.5);
+eq('exactly on a milestone levels up', S.milestoneProgress(50, MS).level, 1);
+eq('next target after 50h', S.milestoneProgress(50, MS).next, 150);
+eq('progress is relative to previous milestone',
+   S.milestoneProgress(100, MS).pct, 0.5);
+eq('remaining hours', S.milestoneProgress(120, MS).remaining, 30);
+eq('past the top milestone', S.milestoneProgress(2000, MS), {level:6,prev:1500,next:null,remaining:0,pct:1});
+eq('unsorted milestones still work', S.milestoneProgress(60, [300,50,150]).next, 150);
+
+// --- projection -------------------------------------------------------------
+const steady = Array.from({length:30}, (_,i) => mk(S.addDays('2026-03-30', -i), 60));
+const proj = S.projection(steady, 60, '2026-03-30');
+eq('projection: 30h done at 1h/day needs 30 more days', proj.days, 30);
+eq('projection date', proj.date, '2026-04-29');
+eq('projection with no activity returns null', S.projection([], 50, '2026-03-30').days, null);
+eq('projection when already past target', S.projection(steady, 5, '2026-03-30').done, true);
+
+// --- formatting -------------------------------------------------------------
+eq('formatHM under an hour', S.formatHM(45), '45m');
+eq('formatHM exact hour drops zero minutes', S.formatHM(60), '1h');
+eq('formatHM zero', S.formatHM(0), '0m');
+eq('formatHM rounds', S.formatHM(90.4), '1h 30m');
+eq('formatHM mixed', S.formatHM(135), '2h 15m');
+
+// --- report -----------------------------------------------------------------
+const failed = results.filter(r => !r.ok);
+document.getElementById('out').innerHTML = results.map(r =>
+  `<div class="${r.ok?'pass':'fail'}">${r.ok?'PASS':'FAIL'} — ${r.name}` +
+  (r.ok ? '' : `<br>&nbsp;&nbsp;got:  ${JSON.stringify(r.got)}<br>&nbsp;&nbsp;want: ${JSON.stringify(r.want)}`) +
+  `</div>`).join('');
+const sum = document.getElementById('summary');
+sum.textContent = `${results.length - failed.length}/${results.length} passed`;
+sum.style.background = failed.length ? '#fee2e2' : '#dcfce7';
+window.__testResults = { total: results.length, failed: failed.map(f => ({ name: f.name, got: f.got, want: f.want })) };
+</script>

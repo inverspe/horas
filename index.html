@@ -1,0 +1,162 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Horas</title>
+
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="Horas">
+<link rel="apple-touch-icon" href="icons/icon-180.png">
+
+<link rel="manifest" href="manifest.webmanifest">
+<meta name="theme-color" content="#6366f1" media="(prefers-color-scheme: light)">
+<meta name="theme-color" content="#0b0b10" media="(prefers-color-scheme: dark)">
+<link rel="stylesheet" href="styles.css">
+</head>
+<body>
+
+<header class="bar">
+  <h1 id="title">Horas</h1>
+  <button id="settings-btn" class="icon-btn" aria-label="Settings">&#9881;</button>
+</header>
+
+<!-- ============================ LOG ============================ -->
+<main id="view-log" class="view">
+  <section class="hero">
+    <div class="ring-wrap">
+      <div id="ring"></div>
+      <div class="ring-center">
+        <strong id="total-hours">0</strong>
+        <span>hours</span>
+      </div>
+    </div>
+    <p id="milestone-line" class="milestone"></p>
+  </section>
+
+  <div class="stat-row">
+    <div class="stat"><strong id="stat-today">0m</strong><span>today</span></div>
+    <div class="stat"><strong id="stat-streak">0</strong><span>day streak</span></div>
+    <div class="stat"><strong id="stat-avg">0m</strong><span>7-day avg</span></div>
+  </div>
+
+  <h2 class="section-h">Quick add</h2>
+  <div id="quick" class="quick"></div>
+
+  <h2 class="section-h">Add a session</h2>
+  <form id="add-form" class="card form" autocomplete="off">
+    <div class="field">
+      <label for="f-minutes">Minutes</label>
+      <input id="f-minutes" type="number" inputmode="numeric" min="1" max="1440" step="1" required placeholder="30">
+    </div>
+    <div class="field">
+      <label for="f-date">Date</label>
+      <input id="f-date" type="date" required>
+    </div>
+    <div class="field">
+      <label for="f-kind">Type</label>
+      <select id="f-kind">
+        <option value="video">Video</option>
+        <option value="audio">Audio / podcast</option>
+        <option value="reading">Reading</option>
+        <option value="conversation">Conversation</option>
+      </select>
+    </div>
+    <div class="field">
+      <label for="f-source">Source <span class="muted">(optional)</span></label>
+      <input id="f-source" type="text" list="source-list" placeholder="Dreaming Spanish">
+      <datalist id="source-list"></datalist>
+    </div>
+    <div class="field wide">
+      <label for="f-note">Note <span class="muted">(optional)</span></label>
+      <input id="f-note" type="text" placeholder="Episode, topic, how much you understood…">
+    </div>
+    <button type="submit" class="primary wide">Log session</button>
+  </form>
+</main>
+
+<!-- ========================== HISTORY ========================== -->
+<main id="view-history" class="view" hidden>
+  <div id="history"></div>
+</main>
+
+<!-- =========================== STATS =========================== -->
+<main id="view-stats" class="view" hidden>
+  <section class="card">
+    <h2>Last 30 days</h2>
+    <div id="chart-30"></div>
+    <p id="chart-legend" class="muted"></p>
+  </section>
+  <section class="card">
+    <h2>Totals</h2>
+    <dl id="totals" class="diag"></dl>
+  </section>
+  <section class="card">
+    <h2>Pace</h2>
+    <p id="pace" class="muted"></p>
+  </section>
+  <section class="card">
+    <h2>By source</h2>
+    <div id="by-source"></div>
+  </section>
+  <section class="card">
+    <h2>By type</h2>
+    <div id="by-kind"></div>
+  </section>
+</main>
+
+<!-- ========================= SETTINGS ========================== -->
+<main id="view-settings" class="view" hidden>
+  <section class="card">
+    <h2>Daily goal</h2>
+    <div class="field">
+      <label for="s-goal">Minutes per day</label>
+      <input id="s-goal" type="number" inputmode="numeric" min="0" max="1440" step="5">
+    </div>
+  </section>
+
+  <section class="card">
+    <h2>Milestones</h2>
+    <p class="muted">Hour targets, comma separated. Defaults follow the Dreaming Spanish
+       roadmap — check them against the source if the exact figures matter to you.</p>
+    <div class="field">
+      <label for="s-milestones">Hours</label>
+      <input id="s-milestones" type="text" inputmode="numeric" placeholder="50, 150, 300, 600, 1000, 1500">
+    </div>
+    <button id="save-settings" class="primary">Save settings</button>
+  </section>
+
+  <section class="card">
+    <h2>Backup</h2>
+    <p class="muted">Everything is stored on this device only. <strong>Deleting the Home
+       Screen icon deletes your history with it.</strong> Export regularly.</p>
+    <div class="btn-row">
+      <button id="export-btn">Export</button>
+      <button id="merge-btn">Import &amp; merge</button>
+      <button id="replace-btn">Import &amp; replace</button>
+      <input id="import-file" type="file" accept="application/json,.json" hidden>
+    </div>
+  </section>
+
+  <section class="card">
+    <h2>Diagnostics</h2>
+    <dl id="diag" class="diag"></dl>
+  </section>
+
+  <section class="card danger-card">
+    <h2>Danger zone</h2>
+    <button id="wipe-btn" class="danger">Delete all sessions</button>
+  </section>
+</main>
+
+<nav class="tabs">
+  <button data-tab="log" class="tab active">Log</button>
+  <button data-tab="history" class="tab">History</button>
+  <button data-tab="stats" class="tab">Stats</button>
+</nav>
+
+<script type="module" src="app.js"></script>
+</body>
+</html>
