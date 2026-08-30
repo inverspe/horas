@@ -184,6 +184,18 @@ select {
 }
 input:focus, select:focus { outline: 2px solid var(--accent); outline-offset: -1px; }
 
+/* iOS Safari draws a chevron on any input with a `list` attribute, even when the
+   datalist is empty — so it looks tappable but does nothing. Hide it; typing still
+   surfaces the suggestions. Scoped to #f-source on purpose: this same pseudo-element
+   is the calendar icon on input[type=date], which we want to keep. */
+#f-source::-webkit-calendar-picker-indicator {
+  display: none !important;
+  opacity: 0;
+  pointer-events: none;
+  -webkit-appearance: none;
+  appearance: none;
+}
+
 /* ------------------------------ cards ------------------------------- */
 
 .card {

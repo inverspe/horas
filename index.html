@@ -66,7 +66,9 @@
     </div>
     <div class="field">
       <label for="f-source">Source <span class="muted">(optional)</span></label>
-      <input id="f-source" type="text" list="source-list" placeholder="Dreaming Spanish">
+      <!-- The `list` attribute is attached by app.js only when suggestions exist:
+           an empty datalist still renders a dead dropdown chevron on iOS Safari. -->
+      <input id="f-source" type="text" placeholder="Dreaming Spanish">
       <datalist id="source-list"></datalist>
     </div>
     <div class="field wide">

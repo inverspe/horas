@@ -39,6 +39,7 @@ function renderHero() {
 
 function renderSourceOptions() {
   const list = $('source-list');
+  const input = $('f-source');
   list.replaceChildren();
   for (const row of S.bySource(sessions).slice(0, 20)) {
     if (row.source === 'Unlabelled') continue;
@@ -46,6 +47,10 @@ function renderSourceOptions() {
     opt.value = row.source;
     list.append(opt);
   }
+  // iOS Safari draws a dropdown chevron for any input with `list`, even an empty one,
+  // which then does nothing when tapped. Only wire the datalist up once it has entries.
+  if (list.children.length) input.setAttribute('list', 'source-list');
+  else input.removeAttribute('list');
 }
 
 function renderHistory() {
