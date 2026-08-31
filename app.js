@@ -31,10 +31,31 @@ function renderHero() {
 
   const today = S.localDate();
   const todayMin = S.byDay(sessions).get(today) || 0;
+  const goal = settings.dailyGoalMin;
+
   $('stat-today').textContent = S.formatHM(todayMin);
-  $('stat-today').classList.toggle('hit', settings.dailyGoalMin > 0 && todayMin >= settings.dailyGoalMin);
+  $('stat-today').classList.toggle('hit', goal > 0 && todayMin >= goal);
   $('stat-streak').textContent = String(S.streak(sessions, today));
   $('stat-avg').textContent = S.formatHM(S.totalMinutes(S.lastNDays(sessions, 7, today)) / 7);
+
+  // Today's goal ring. A goal of 0 means "no goal", so the widget is hidden and
+  // the hours ring re-centres by itself (.rings is a centred flex row).
+  const wrap = $('goal-wrap');
+  if (goal <= 0) {
+    wrap.hidden = true;
+  } else {
+    wrap.hidden = false;
+    const left = Math.max(0, goal - todayMin);
+    const met = left === 0;
+    $('goal-ring').innerHTML = ring(Math.min(1, todayMin / goal), {
+      color: met ? 'var(--good)' : 'var(--accent)',
+    });
+    $('goal-left').textContent = met ? '✓' : String(left);
+    $('goal-left').classList.toggle('met', met);
+    $('goal-label').textContent = met
+      ? (todayMin > goal ? `+${S.formatHM(todayMin - goal)} over` : 'goal met')
+      : (left === 1 ? 'min left' : 'mins left');
+  }
 }
 
 function renderSourceOptions() {

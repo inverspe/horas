@@ -26,11 +26,22 @@
 <!-- ============================ LOG ============================ -->
 <main id="view-log" class="view">
   <section class="hero">
-    <div class="ring-wrap">
-      <div id="ring"></div>
-      <div class="ring-center">
-        <strong id="total-hours">0</strong>
-        <span>hours</span>
+    <div class="rings">
+      <div class="ring-wrap">
+        <div id="ring"></div>
+        <div class="ring-center">
+          <strong id="total-hours">0</strong>
+          <span>hours</span>
+        </div>
+      </div>
+      <!-- Today's progress against the daily goal. app.js hides this when the
+           goal is set to 0, and the remaining ring re-centres on its own. -->
+      <div class="ring-wrap" id="goal-wrap">
+        <div id="goal-ring"></div>
+        <div class="ring-center">
+          <strong id="goal-left">0</strong>
+          <span id="goal-label">min left</span>
+        </div>
       </div>
     </div>
     <p id="milestone-line" class="milestone"></p>

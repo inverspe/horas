@@ -113,16 +113,43 @@ body {
 /* ------------------------------- hero ------------------------------- */
 
 .hero { text-align: center; padding: 8px 0 4px; }
-.ring-wrap { position: relative; display: inline-grid; place-items: center; }
-.ring { display: block; }
+
+/* Centred row, so hiding the goal ring re-centres the hours ring automatically. */
+.rings { display: flex; justify-content: center; align-items: center; gap: 16px; }
+
+.ring-wrap {
+  position: relative;
+  display: grid;
+  place-items: center;
+  width: 132px;
+  flex: 0 0 auto;
+}
+.ring-wrap[hidden] { display: none; }   /* beats display:grid */
+.ring { display: block; width: 100%; height: auto; }
 .ring-center {
   position: absolute;
   display: grid;
   justify-items: center;
   line-height: 1.1;
+  padding: 0 8px;
 }
 .ring-center strong { font-size: 34px; font-weight: 700; letter-spacing: -0.02em; }
-.ring-center span { font-size: 12px; color: var(--muted); text-transform: uppercase; letter-spacing: 0.06em; }
+.ring-center strong.met { color: var(--good); }
+.ring-center span {
+  font-size: 11px;
+  color: var(--muted);
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  white-space: nowrap;
+}
+
+/* Two 132px rings + gap need 280px; below that, shrink rather than wrap. */
+@media (max-width: 340px) {
+  .rings { gap: 10px; }
+  .ring-wrap { width: 116px; }
+  .ring-center strong { font-size: 28px; }
+  .ring-center span { font-size: 10px; }
+}
 .milestone { margin: 10px 0 0; font-size: 14px; color: var(--muted); }
 
 .stat-row { display: flex; gap: 8px; margin: 18px 0 4px; }

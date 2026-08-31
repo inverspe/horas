@@ -3,15 +3,18 @@
 
 const esc = (s) => String(s).replace(/[&<>"]/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]));
 
-/** Progress ring. pct is 0..1. */
-export function ring(pct, { size = 132, stroke = 11 } = {}) {
+/**
+ * Progress ring. pct is 0..1. No width/height attributes — CSS sizes it, so the
+ * rings can shrink together on narrow screens without touching JS.
+ */
+export function ring(pct, { size = 132, stroke = 11, color = 'var(--accent)' } = {}) {
   const r = (size - stroke) / 2;
   const c = 2 * Math.PI * r;
   const off = c * (1 - Math.max(0, Math.min(1, pct)));
   const mid = size / 2;
-  return `<svg viewBox="0 0 ${size} ${size}" width="${size}" height="${size}" class="ring" aria-hidden="true">
+  return `<svg viewBox="0 0 ${size} ${size}" class="ring" aria-hidden="true">
     <circle cx="${mid}" cy="${mid}" r="${r}" fill="none" stroke="var(--line)" stroke-width="${stroke}"/>
-    <circle cx="${mid}" cy="${mid}" r="${r}" fill="none" stroke="var(--accent)" stroke-width="${stroke}"
+    <circle cx="${mid}" cy="${mid}" r="${r}" fill="none" stroke="${color}" stroke-width="${stroke}"
       stroke-linecap="round" stroke-dasharray="${c.toFixed(2)}" stroke-dashoffset="${off.toFixed(2)}"
       transform="rotate(-90 ${mid} ${mid})"/>
   </svg>`;
