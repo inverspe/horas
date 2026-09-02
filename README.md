@@ -84,9 +84,14 @@ from storage eviction. Safari grants this for installed apps. Export anyway.
 
 ## After you change anything
 
-Bump `CACHE = 'horas-v1'` in `sw.js` to `-v2`, etc. Without that, installed phones keep
-serving the old cached copy. Navigations are network-first so HTML updates land on the
-next launch, but assets are cache-first and need the version bump.
+Bump `CACHE` in `sw.js` (`horas-v7` -> `horas-v8`, etc). Without that, installed phones
+keep serving the old cached copy.
+
+Navigations are network-first while assets are cache-first, so a deploy can briefly pair
+new `index.html` with a stale cached `app.js`. `registerServiceWorker()` in `app.js`
+handles that: when a new worker takes control it reloads once, so markup and scripts
+always come from the same generation. It lives at module top level on purpose — if a
+skew ever throws inside `boot()`, recovery must not depend on `boot()` having finished.
 
 ## What this cannot do on iOS
 

@@ -1,6 +1,6 @@
 /* Bump CACHE whenever you change any precached file, otherwise phones keep
    serving the old copy. Everything else here is generic. */
-const CACHE = 'horas-v6';
+const CACHE = 'horas-v7';
 
 const SHELL = [
   './',

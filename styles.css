@@ -194,7 +194,19 @@ button {
 }
 button.primary { background: var(--accent); color: var(--accent-text); border-color: transparent; }
 button.danger { background: var(--danger); color: #fff; border-color: transparent; }
-button:active { opacity: 0.7; }
+
+/* Press feedback. We suppress iOS's default grey flash via -webkit-tap-highlight-color,
+   so this is the only cue a tap registered — it needs to be clearly visible. Paired
+   with a no-op touchstart listener in app.js, without which iOS ignores :active. */
+button { transition: transform 70ms ease, opacity 70ms ease, filter 70ms ease; }
+button:active { opacity: 0.55; transform: scale(0.97); }
+button.primary:active, button.danger:active { opacity: 1; filter: brightness(0.82); }
+.chip:active { opacity: 1; filter: brightness(1.35); }
+.tab:active { opacity: 0.5; transform: none; }
+@media (prefers-reduced-motion: reduce) {
+  button { transition: none; }
+  button:active { transform: none; }
+}
 .icon-btn { padding: 8px 12px; font-size: 18px; line-height: 1; }
 .btn-row { display: flex; flex-wrap: wrap; gap: 8px; }
 .wide { grid-column: 1 / -1; width: 100%; }
