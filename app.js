@@ -114,7 +114,8 @@ function renderSourceManager() {
     return;
   }
 
-  const used = new Map(S.bySource(sessions).map((r) => [r.source, r.minutes]));
+  // Just names — this list is a shortcut for the Source field, not a stats view.
+  // Per-source hours live on the Stats tab.
   for (const name of names) {
     const row = document.createElement('div');
     row.className = 'src-row';
@@ -123,11 +124,6 @@ function renderSourceManager() {
     label.className = 'src-name';
     label.textContent = name;
 
-    const mins = used.get(name) || 0;
-    const meta = document.createElement('span');
-    meta.className = 'src-meta';
-    meta.textContent = mins ? S.formatHM(mins) : 'unused';
-
     const del = document.createElement('button');
     del.type = 'button';
     del.className = 'del';
@@ -135,10 +131,10 @@ function renderSourceManager() {
     del.textContent = '✕';
     del.addEventListener('click', async () => {
       await removeSource(name);
-      toast(mins ? `Removed "${name}" from the picker — hours kept` : `Removed "${name}"`);
+      toast(`Removed "${name}"`);
     });
 
-    row.append(label, meta, del);
+    row.append(label, del);
     host.append(row);
   }
 }
