@@ -58,20 +58,95 @@ function renderHero() {
   }
 }
 
-function renderSourceOptions() {
-  const list = $('source-list');
-  const input = $('f-source');
-  list.replaceChildren();
-  for (const row of S.bySource(sessions).slice(0, 20)) {
-    if (row.source === 'Unlabelled') continue;
-    const opt = document.createElement('option');
-    opt.value = row.source;
-    list.append(opt);
+const NEW_SOURCE = '__new__';
+
+const sortedSources = () =>
+  [...(settings.sources || [])].sort((a, b) => a.localeCompare(b, undefined, { sensitivity: 'base' }));
+
+/** Add to the managed list, case-insensitively deduped. Returns the stored spelling. */
+async function addSource(rawName) {
+  const name = rawName.trim().slice(0, 60);
+  if (!name) return null;
+  const existing = (settings.sources || [])
+    .find((s) => s.toLowerCase() === name.toLowerCase());
+  if (existing) return existing;             // keep the original spelling
+  settings = { ...settings, sources: [...(settings.sources || []), name], sourcesSeeded: true };
+  await store.saveSettings(settings);
+  renderSourcePicker();
+  renderSourceManager();
+  return name;
+}
+
+/** Removes from the picker only — sessions using this source are left untouched. */
+async function removeSource(name) {
+  settings = {
+    ...settings,
+    sources: (settings.sources || []).filter((s) => s !== name),
+    sourcesSeeded: true,
+  };
+  await store.saveSettings(settings);
+  renderSourcePicker();
+  renderSourceManager();
+}
+
+function toggleNewSourceField() {
+  const isNew = $('f-source').value === NEW_SOURCE;
+  $('new-source-field').hidden = !isNew;
+  if (!isNew) $('f-new-source').value = '';
+}
+
+function renderSourcePicker() {
+  const sel = $('f-source');
+  const previous = sel.value;
+  sel.replaceChildren();
+  sel.append(new Option('— none —', ''));
+  for (const name of sortedSources()) sel.append(new Option(name, name));
+  sel.append(new Option('+ Add new…', NEW_SOURCE)); // short enough not to clip in the narrow select
+  // Keep the selection only if it still exists (it may have just been removed).
+  sel.value = [...sel.options].some((o) => o.value === previous) ? previous : '';
+  toggleNewSourceField();
+}
+
+function renderSourceManager() {
+  const host = $('source-manager');
+  const names = sortedSources();
+  host.replaceChildren();
+
+  if (!names.length) {
+    const p = document.createElement('p');
+    p.className = 'empty';
+    p.textContent = 'No sources yet. Add one below, or type a new one when logging a session.';
+    host.append(p);
+    return;
   }
-  // iOS Safari draws a dropdown chevron for any input with `list`, even an empty one,
-  // which then does nothing when tapped. Only wire the datalist up once it has entries.
-  if (list.children.length) input.setAttribute('list', 'source-list');
-  else input.removeAttribute('list');
+
+  const used = new Map(S.bySource(sessions).map((r) => [r.source, r.minutes]));
+  for (const name of names) {
+    const row = document.createElement('div');
+    row.className = 'src-row';
+
+    const label = document.createElement('span');
+    label.className = 'src-name';
+    label.textContent = name;
+
+    const mins = used.get(name) || 0;
+    const meta = document.createElement('span');
+    meta.className = 'src-meta';
+    meta.textContent = mins ? S.formatHM(mins) : 'unused';
+
+    const del = document.createElement('button');
+    del.type = 'button';
+    del.className = 'del';
+    del.setAttribute('aria-label', `Remove ${name} from the picker`);
+    del.textContent = '✕';
+    del.addEventListener('click', async () => {
+      await removeSource(name);
+      toast(mins ? `Removed "${name}" from the picker — hours kept` : `Removed "${name}"`);
+    });
+
+    row.append(label, meta, del);
+    host.append(row);
+  }
 }
 
 function renderHistory() {
@@ -214,7 +289,7 @@ function renderStats() {
 
 function refresh() {
   renderHero();
-  renderSourceOptions();
+  renderSourcePicker();
   if (currentTab === 'history') renderHistory();
   if (currentTab === 'stats') renderStats();
 }
@@ -264,6 +339,7 @@ function showTab(tab) {
 function fillSettings() {
   $('s-goal').value = settings.dailyGoalMin;
   $('s-milestones').value = settings.milestones.join(', ');
+  renderSourceManager();
 }
 
 async function diagnostics() {
@@ -308,17 +384,49 @@ $('add-form').addEventListener('submit', async (e) => {
     toast('Enter a positive number of minutes');
     return;
   }
+  // "+ New source…" means the typed name becomes a saved source before we log.
+  const sel = $('f-source');
+  let source = sel.value;
+  if (source === NEW_SOURCE) {
+    const typed = $('f-new-source').value.trim();
+    if (!typed) {
+      toast('Enter a name for the new source');
+      $('f-new-source').focus();
+      return;
+    }
+    source = (await addSource(typed)) || '';
+  }
+
   await addSession({
     minutes,
     date: $('f-date').value || S.localDate(),
     kind: $('f-kind').value,
-    source: $('f-source').value,
+    source,
     note: $('f-note').value,
   });
   $('f-minutes').value = '';
   $('f-note').value = '';
   $('f-date').value = S.localDate();
+  // Keep the source selected — logging several sessions from one source is common.
+  sel.value = [...sel.options].some((o) => o.value === source) ? source : '';
+  toggleNewSourceField();
   toast(`Logged ${S.formatHM(minutes)}`);
+});
+
+$('f-source').addEventListener('change', () => {
+  toggleNewSourceField();
+  if ($('f-source').value === NEW_SOURCE) $('f-new-source').focus();
+});
+
+$('add-source-form').addEventListener('submit', async (e) => {
+  e.preventDefault();
+  const input = $('s-new-source');
+  const name = input.value.trim();
+  if (!name) return;
+  const before = (settings.sources || []).length;
+  const stored = await addSource(name);
+  input.value = '';
+  toast((settings.sources || []).length > before ? `Added "${stored}"` : `"${stored}" already exists`);
 });
 
 for (const btn of document.querySelectorAll('.tab')) {
@@ -393,6 +501,18 @@ $('wipe-btn').addEventListener('click', async () => {
 
 async function boot() {
   [sessions, settings] = await Promise.all([store.allSessions(), store.getSettings()]);
+
+  // One-time migration: sources used to be derived from sessions. Seed the managed
+  // list from history so nothing is lost. The flag means clearing the list stays
+  // cleared — without it, every reload would resurrect removed sources.
+  if (!settings.sourcesSeeded) {
+    const derived = S.bySource(sessions)
+      .map((r) => r.source)
+      .filter((s) => s !== 'Unlabelled');
+    settings = { ...settings, sources: [...new Set([...(settings.sources || []), ...derived])], sourcesSeeded: true };
+    await store.saveSettings(settings);
+  }
+
   $('f-date').value = S.localDate();
   $('f-date').max = S.localDate();
   refresh();

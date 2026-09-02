@@ -227,17 +227,28 @@ select {
 }
 input:focus, select:focus { outline: 2px solid var(--accent); outline-offset: -1px; }
 
-/* iOS Safari draws a chevron on any input with a `list` attribute, even when the
-   datalist is empty — so it looks tappable but does nothing. Hide it; typing still
-   surfaces the suggestions. Scoped to #f-source on purpose: this same pseudo-element
-   is the calendar icon on input[type=date], which we want to keep. */
-#f-source::-webkit-calendar-picker-indicator {
-  display: none !important;
-  opacity: 0;
-  pointer-events: none;
-  -webkit-appearance: none;
-  appearance: none;
+/* Managed source list in Settings. */
+.src-row {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 10px 0;
+  border-bottom: 1px solid var(--line);
 }
+.src-row:last-of-type { border-bottom: none; }
+.src-name { flex: 1; min-width: 0; font-size: 15px; overflow-wrap: anywhere; }
+.src-meta {
+  font-size: 12px;
+  color: var(--muted);
+  font-variant-numeric: tabular-nums;
+  white-space: nowrap;
+}
+/* Input + button on one line. min-width:0 stops the 100%-width input from
+   refusing to shrink and pushing the button onto its own row. */
+.add-row { display: flex; gap: 8px; align-items: stretch; }
+.add-row input { flex: 1 1 auto; min-width: 0; }
+.add-row button { flex: 0 0 auto; }
+#add-source-form { margin-top: 14px; }
 
 /* ------------------------------ cards ------------------------------- */
 

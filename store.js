@@ -11,6 +11,10 @@ export const DEFAULT_SETTINGS = {
   // Dreaming Spanish roadmap levels. Editable in Settings — verify against the
   // source if the exact numbers matter to you.
   milestones: [50, 150, 300, 600, 1000, 1500],
+  // Managed picker list, deliberately independent of what sessions reference:
+  // removing a source here must never affect already-logged hours.
+  sources: [],
+  sourcesSeeded: false,
 };
 
 let dbPromise = null;
