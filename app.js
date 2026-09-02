@@ -58,8 +58,6 @@ function renderHero() {
   }
 }
 
-const NEW_SOURCE = '__new__';
-
 const sortedSources = () =>
   [...(settings.sources || [])].sort((a, b) => a.localeCompare(b, undefined, { sensitivity: 'base' }));
 
@@ -89,22 +87,18 @@ async function removeSource(name) {
   renderSourceManager();
 }
 
-function toggleNewSourceField() {
-  const isNew = $('f-source').value === NEW_SOURCE;
-  $('new-source-field').hidden = !isNew;
-  if (!isNew) $('f-new-source').value = '';
-}
-
 function renderSourcePicker() {
-  const sel = $('f-source');
-  const previous = sel.value;
-  sel.replaceChildren();
-  sel.append(new Option('— none —', ''));
-  for (const name of sortedSources()) sel.append(new Option(name, name));
-  sel.append(new Option('+ Add new…', NEW_SOURCE)); // short enough not to clip in the narrow select
-  // Keep the selection only if it still exists (it may have just been removed).
-  sel.value = [...sel.options].some((o) => o.value === previous) ? previous : '';
-  toggleNewSourceField();
+  const list = $('source-list');
+  list.replaceChildren();
+  for (const name of sortedSources()) {
+    const opt = document.createElement('option');
+    opt.value = name;
+    list.append(opt);
+  }
+  // iOS Safari draws a chevron for any input carrying `list`, even an empty one,
+  // which then does nothing when tapped. Only attach it once there's something to show.
+  if (list.children.length) $('f-source').setAttribute('list', 'source-list');
+  else $('f-source').removeAttribute('list');
 }
 
 function renderSourceManager() {
@@ -384,18 +378,14 @@ $('add-form').addEventListener('submit', async (e) => {
     toast('Enter a positive number of minutes');
     return;
   }
-  // "+ New source…" means the typed name becomes a saved source before we log.
-  const sel = $('f-source');
-  let source = sel.value;
-  if (source === NEW_SOURCE) {
-    const typed = $('f-new-source').value.trim();
-    if (!typed) {
-      toast('Enter a name for the new source');
-      $('f-new-source').focus();
-      return;
-    }
-    source = (await addSource(typed)) || '';
-  }
+  // A typed source is saved to the dropdown here — but only when it's genuinely new.
+  // addSource dedupes case-insensitively and hands back the stored spelling, so
+  // typing "netflix" logs against the existing "Netflix" instead of splitting it.
+  const typed = $('f-source').value.trim();
+  const known = typed
+    ? (settings.sources || []).some((s) => s.toLowerCase() === typed.toLowerCase())
+    : true;
+  const source = typed ? (await addSource(typed)) || '' : '';
 
   await addSession({
     minutes,
@@ -407,15 +397,9 @@ $('add-form').addEventListener('submit', async (e) => {
   $('f-minutes').value = '';
   $('f-note').value = '';
   $('f-date').value = S.localDate();
-  // Keep the source selected — logging several sessions from one source is common.
-  sel.value = [...sel.options].some((o) => o.value === source) ? source : '';
-  toggleNewSourceField();
-  toast(`Logged ${S.formatHM(minutes)}`);
-});
-
-$('f-source').addEventListener('change', () => {
-  toggleNewSourceField();
-  if ($('f-source').value === NEW_SOURCE) $('f-new-source').focus();
+  // Leave the source in place — logging several sessions from one source is common.
+  $('f-source').value = source;
+  toast(known ? `Logged ${S.formatHM(minutes)}` : `Logged ${S.formatHM(minutes)} · saved "${source}"`);
 });
 
 $('add-source-form').addEventListener('submit', async (e) => {

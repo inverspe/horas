@@ -77,12 +77,10 @@
     </div>
     <div class="field">
       <label for="f-source">Source <span class="muted">(optional)</span></label>
-      <!-- Options are filled from the saved source list in app.js. -->
-      <select id="f-source"></select>
-    </div>
-    <div class="field wide" id="new-source-field" hidden>
-      <label for="f-new-source">New source name</label>
-      <input id="f-new-source" type="text" placeholder="e.g. Dreaming Spanish" maxlength="60">
+      <!-- Type freely; a new name is saved to the list on submit. app.js attaches
+           `list` only once there are saved sources, so there's never a dead chevron. -->
+      <input id="f-source" type="text" placeholder="Dreaming Spanish" maxlength="60">
+      <datalist id="source-list"></datalist>
     </div>
     <div class="field wide">
       <label for="f-note">Note <span class="muted">(optional)</span></label>

@@ -56,10 +56,12 @@ Open ⚙ → Diagnostics to confirm `Installed: yes` and `Service worker: regist
   projection for your next milestone, and breakdowns by source and type.
 - **⚙ Settings** — daily goal, milestone hours, sources, backup, diagnostics.
 
-Sources are a **managed list**, not derived from your sessions. Add one in Settings, or
-pick `+ Add new…` in the Source dropdown while logging. Removing a source only takes it
-out of the picker: sessions logged with it keep their hours and still appear in History
-and Stats. That's deliberate — it means fixing a typo never costs you logged time.
+Sources are a **managed list**, not derived from your sessions. Just type one into the
+Source field and log — a name that isn't already saved is added to the dropdown for next
+time, matched case-insensitively so `netflix` reuses `Netflix` rather than splitting your
+stats. Remove one in Settings; that only takes it out of the dropdown, and sessions
+logged with it keep their hours and still appear in History and Stats. That's deliberate
+— fixing a typo should never cost you logged time.
 
 Milestones default to `50, 150, 300, 600, 1000, 1500` following the Dreaming Spanish
 roadmap. They're editable in Settings — check the figures against the source if the
