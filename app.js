@@ -306,6 +306,33 @@ async function addSession({ minutes, date, kind = 'video', source = '', note = '
   return rec;
 }
 
+/**
+ * Best-effort haptic tick. Web haptics are badly supported:
+ *  - navigator.vibrate covers Android; iOS Safari does not implement it at all.
+ *  - Toggling an <input type="checkbox" switch> (iOS 17.4+) is the only reported
+ *    route to a haptic on iPhone. It does nothing on iOS 16.x.
+ * Both paths fail silently, so this is safe to call unconditionally.
+ */
+let hapticSwitch = null;
+function haptic() {
+  try { navigator.vibrate?.(10); } catch { /* unsupported */ }
+  try {
+    if (!hapticSwitch) {
+      hapticSwitch = document.createElement('input');
+      hapticSwitch.type = 'checkbox';
+      hapticSwitch.setAttribute('switch', '');   // ignored by browsers that lack it
+      hapticSwitch.setAttribute('aria-hidden', 'true');
+      hapticSwitch.tabIndex = -1;
+      // padding/border reset too: the global `input` rule would otherwise give this
+      // a real size, leaving an invisible element sitting over the top-left corner.
+      hapticSwitch.style.cssText = 'position:fixed;top:0;left:0;width:0;height:0;'
+        + 'padding:0;border:0;margin:0;opacity:0;pointer-events:none;appearance:none';
+      document.body.append(hapticSwitch);        // outside any <form> on purpose
+    }
+    hapticSwitch.click();
+  } catch { /* unsupported */ }
+}
+
 function toast(message) {
   document.querySelector('.toast')?.remove();
   const el = document.createElement('div');
@@ -366,6 +393,7 @@ $('quick').replaceChildren(...QUICK_ADDS.map((m) => {
   b.textContent = `+${m}m`;
   b.addEventListener('click', async () => {
     await addSession({ minutes: m, date: S.localDate() });
+    haptic();  // same action as Log session, so same feedback
     toast(`Logged ${m} minutes`);
   });
   return b;
@@ -394,11 +422,14 @@ $('add-form').addEventListener('submit', async (e) => {
     source,
     note: $('f-note').value,
   });
+  // Reset the form for the next entry. Date deliberately goes back to today rather
+  // than clearing, since that's the value wanted almost every time.
   $('f-minutes').value = '';
   $('f-note').value = '';
+  $('f-source').value = '';
+  $('f-kind').value = 'video';
   $('f-date').value = S.localDate();
-  // Leave the source in place — logging several sessions from one source is common.
-  $('f-source').value = source;
+  haptic();
   toast(known ? `Logged ${S.formatHM(minutes)}` : `Logged ${S.formatHM(minutes)} · saved "${source}"`);
 });
 

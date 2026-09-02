@@ -49,8 +49,15 @@ Open ⚙ → Diagnostics to confirm `Installed: yes` and `Service worker: regist
 
 ## Using it
 
-- **Log** — headline total, progress ring to the next milestone, today/streak/7-day-avg,
-  six quick-add buttons, and a full form for backdating or adding a source and note.
+- **Log** — headline total, progress ring to the next milestone, a daily-goal ring
+  counting down minutes left, today/streak/7-day-avg, six quick-add buttons, and a full
+  form for backdating or adding a source and note. After logging, the form clears and
+  Date resets to today.
+
+> **Haptics:** logging calls a best-effort `haptic()`. `navigator.vibrate` covers
+> Android; **iOS Safari does not implement it at all**. The `<input type="checkbox"
+> switch>` toggle is the only reported route on iPhone and needs **iOS 17.4+** — so on
+> iOS 16.x nothing fires. Both paths fail silently.
 - **History** — grouped by day with day totals, newest first. Tap ✕ to delete.
 - **Stats** — 30-day bar chart against your daily goal, totals, streaks, a pace
   projection for your next milestone, and breakdowns by source and type.
