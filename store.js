@@ -97,6 +97,7 @@ export async function importJSON(text, { merge = false } = {}) {
       minutes: Number(raw.minutes),
       source: raw.source || '',
       kind: raw.kind || 'video',
+      title: raw.title || '',
       note: raw.note || '',
       createdAt: raw.createdAt || Date.now(),
     });

@@ -184,15 +184,24 @@ function renderHistory() {
 
       const main = document.createElement('div');
       main.className = 'entry-main';
+      // Headline is the most specific thing given: title, else source, else the type.
+      // Whatever gets promoted is then left out of the subtitle so it isn't repeated.
+      const entryTitle = (s.title || '').trim();
       const source = (s.source || '').trim();
       const kindLabel = KIND_LABELS[s.kind] || s.kind;
+      const primary = entryTitle || source || kindLabel || 'Session';
+
       const title = document.createElement('span');
       title.className = 'entry-title';
-      title.textContent = source || kindLabel || 'Session';
+      title.textContent = primary;
+
       const meta = document.createElement('span');
       meta.className = 'entry-meta';
-      // Don't repeat the kind in the subtitle when it's already the title.
-      meta.textContent = (source ? [kindLabel, s.note] : [s.note]).filter(Boolean).join(' · ');
+      meta.textContent = [
+        source && source !== primary ? source : null,
+        kindLabel !== primary ? kindLabel : null,
+        s.note || null,
+      ].filter(Boolean).join(' · ');
       main.append(title, meta);
 
       const mins = document.createElement('span');
@@ -286,13 +295,14 @@ function refresh() {
 
 /* ------------------------------ actions ------------------------------ */
 
-async function addSession({ minutes, date, kind = 'video', source = '', note = '' }) {
+async function addSession({ minutes, date, kind = 'video', source = '', title = '', note = '' }) {
   const rec = {
     id: store.newId(),
     date,
     minutes: Number(minutes),
     kind,
     source: source.trim(),
+    title: title.trim(),
     note: note.trim(),
     createdAt: Date.now(),
   };
@@ -416,11 +426,13 @@ $('add-form').addEventListener('submit', async (e) => {
     date: $('f-date').value || S.localDate(),
     kind: $('f-kind').value,
     source,
+    title: $('f-title').value,
     note: $('f-note').value,
   });
   // Reset the form for the next entry. Date deliberately goes back to today rather
   // than clearing, since that's the value wanted almost every time.
   $('f-minutes').value = '';
+  $('f-title').value = '';
   $('f-note').value = '';
   $('f-source').value = '';
   $('f-kind').value = 'video';

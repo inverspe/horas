@@ -58,7 +58,9 @@ Open ⚙ → Diagnostics to confirm `Installed: yes` and `Service worker: regist
 > Android; **iOS Safari does not implement it at all**. The `<input type="checkbox"
 > switch>` toggle is the only reported route on iPhone and needs **iOS 17.4+** — so on
 > iOS 16.x nothing fires. Both paths fail silently.
-- **History** — grouped by day with day totals, newest first. Tap ✕ to delete.
+- **History** — grouped by day with day totals, newest first. Tap ✕ to delete. Each row
+  leads with the most specific thing given — title, else source, else type — and the
+  rest becomes the subtitle, so nothing is printed twice.
 - **Stats** — 30-day bar chart against your daily goal, totals, streaks, a pace
   projection for your next milestone, and breakdowns by source and type.
 - **⚙ Settings** — daily goal, milestone hours, sources, backup, diagnostics.
