@@ -603,40 +603,13 @@ async function boot() {
   store.requestPersistence();
 }
 
-/**
- * Deliberately at module top level, NOT inside boot(): if a future deploy ever pairs
- * new markup with stale cached code again, boot() may throw before it gets here — and
- * the app would then have no way to pull in the fix. Recovery must not depend on the
- * rest of the app working.
- *
- * Service workers need a secure context (HTTPS, or localhost). Over plain http:// on a
- * LAN IP registration throws, which is expected during dev.
- */
-function registerServiceWorker() {
-  if (!('serviceWorker' in navigator) || !window.isSecureContext) return;
-
-  // Navigations are network-first but assets are cache-first, so straight after a
-  // deploy the browser can pair NEW index.html with OLD cached app.js. As soon as a
-  // new worker takes control, reload once so markup and scripts match generations.
-  const hadController = !!navigator.serviceWorker.controller;
-  let reloading = false;
-  navigator.serviceWorker.addEventListener('controllerchange', () => {
-    if (!hadController || reloading) return; // first install: nothing stale to fix
-    reloading = true;
-    location.reload();
-  });
-
-  navigator.serviceWorker.register('sw.js').catch((err) => {
-    console.warn('SW registration failed:', err);
-  });
-}
-
 // iOS Safari only honours :active styles while a touch listener exists on the document.
 // Without this no-op, every button feels dead on iPhone — and since we suppress the
 // default grey tap flash, :active is the only press feedback there is.
 document.addEventListener('touchstart', () => {}, { passive: true });
 
-registerServiceWorker();
+// Service-worker registration and update reloads live in boot-guard.js, a classic
+// script: if these modules ever fail to link, nothing in this file runs at all.
 
 // Exposed so the test page can drive the real app rather than reimplementing it.
 window.__horas = {

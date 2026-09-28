@@ -94,14 +94,20 @@ from storage eviction. Safari grants this for installed apps. Export anyway.
 
 ## After you change anything
 
-Bump `CACHE` in `sw.js` (`horas-v7` -> `horas-v8`, etc). Without that, installed phones
-keep serving the old cached copy.
+Bump `CACHE` in `sw.js` (`horas-v12` -> `horas-v13`, etc.) on **every** deploy. It's the
+only signal installed phones get that there's a new version; without it they keep
+serving the previous one.
 
-Navigations are network-first while assets are cache-first, so a deploy can briefly pair
-new `index.html` with a stale cached `app.js`. `registerServiceWorker()` in `app.js`
-handles that: when a new worker takes control it reloads once, so markup and scripts
-always come from the same generation. It lives at module top level on purpose — if a
-skew ever throws inside `boot()`, recovery must not depend on `boot()` having finished.
+Each version's files are downloaded together (bypassing the browser's HTTP cache —
+GitHub Pages sends `max-age=600`) and served together. Versions must never mix:
+`app.js` imports named exports from the other modules, and if two files come from
+different deploys the browser refuses to run the app at all.
+
+`boot-guard.js` is a plain (non-module) script so it runs even if the modules fail to
+load. It registers the service worker, reloads once when a new version takes over, and
+if the app hasn't started within a few seconds asks the worker for a fresh matching set
+of files and reloads — once per launch. None of this touches your logged sessions,
+which live in IndexedDB.
 
 ## What this cannot do on iOS
 

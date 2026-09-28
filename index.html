@@ -196,6 +196,8 @@
   <button data-tab="stats" class="tab">Stats</button>
 </nav>
 
+<!-- Classic script, before the modules: it must run even if they fail to load. -->
+<script src="boot-guard.js"></script>
 <script type="module" src="app.js"></script>
 </body>
 </html>
