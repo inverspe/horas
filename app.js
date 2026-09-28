@@ -1,6 +1,6 @@
 import * as store from './store.js';
 import * as S from './stats.js';
-import { ring, barChart, breakdown } from './charts.js';
+import { dial, barChart, breakdown } from './charts.js';
 
 const $ = (id) => document.getElementById(id);
 const QUICK_ADDS = [10, 15, 20, 30, 45, 60];
@@ -10,6 +10,14 @@ const KIND_LABELS = {
   reading: 'Reading',
   conversation: 'Conversation',
 };
+// Lower-case forms for running text, e.g. "Dreaming Spanish, video".
+const KIND_WORDS = { video: 'video', audio: 'audio', reading: 'reading', conversation: 'conversation' };
+
+// Sentences say "43 min" / "1 h 15 min"; the compact "43m" stays in data columns.
+const spoken = (m) => {
+  const t = Math.round(m), h = Math.floor(t / 60), mm = t % 60;
+  return h ? (mm ? `${h} h ${mm} min` : `${h} h`) : `${t} min`;
+};
 
 let sessions = [];
 let settings = store.DEFAULT_SETTINGS;
@@ -17,45 +25,86 @@ let currentTab = 'log';
 
 /* ----------------------------- rendering ----------------------------- */
 
+/**
+ * Hour meter. Four whole-hour drums plus a saffron tenths drum, like a Hobbs meter.
+ * Each drum is a strip of 0–9 translated by --d, so a CSS transition makes it roll;
+ * only drums whose digit changed move, which is what makes logging feel physical.
+ */
+let meterPrimed = false;
+let meterState = { digits: [0, 0, 0, 0, 0], leading: 3 };
+function renderMeter(hours) {
+  const meter = $('meter');
+  if (!meter.childElementCount) {
+    const strip = Array.from({ length: 10 }, (_, n) => `<span>${n}</span>`).join('');
+    const drum = (cls) => `<span class="drum${cls}" style="--d:0"><span class="strip">${strip}</span></span>`;
+    meter.innerHTML = drum('') + drum('') + drum('') + drum('')
+      + '<span class="point" aria-hidden="true"></span>' + drum(' tenths');
+  }
+
+  // Round to the tenth so the meter agrees with Stats ("111.4 h") to the digit.
+  const tenths = Math.round(Math.min(9999.9, Math.max(0, hours)) * 10);
+  const digits = String(Math.floor(tenths / 10)).padStart(4, '0').split('').map(Number);
+  digits.push(tenths % 10);
+  const firstSignificant = digits.slice(0, 3).findIndex((d) => d !== 0);
+  const leading = firstSignificant === -1 ? 3 : firstSignificant;
+
+  // apply() reads the LATEST state, not values captured when it was scheduled: the
+  // first roll is deferred two frames, and a render landing inside that window must
+  // not be overwritten by the stale deferred one.
+  meterState = { digits, leading };
+  const drums = meter.querySelectorAll('.drum');
+  const apply = () => drums.forEach((el, i) => {
+    el.style.setProperty('--d', meterState.digits[i]);
+    el.classList.toggle('lead', i < meterState.leading);   // dim leading zeros, as a meter does
+  });
+  // First render rolls up from zero — the app's one orchestrated moment on open.
+  // Two frames so the zeroed state paints before the transition target is set.
+  if (meterPrimed) apply();
+  else { meterPrimed = true; requestAnimationFrame(() => requestAnimationFrame(apply)); }
+  meter.setAttribute('aria-label', `${(tenths / 10).toFixed(1)} hours`);
+}
+
 function renderHero() {
-  const mins = S.totalMinutes(sessions);
-  const hours = mins / 60;
+  const hours = S.totalMinutes(sessions) / 60;
+  renderMeter(hours);
+
   const prog = S.milestoneProgress(hours, settings.milestones);
-
-  $('ring').innerHTML = ring(prog.pct);
-  $('total-hours').textContent = hours >= 100 ? Math.round(hours) : hours.toFixed(1);
-
-  $('milestone-line').textContent = prog.next === null
-    ? `Past your final milestone of ${prog.prev}h — outstanding.`
-    : `Level ${prog.level + 1} · ${prog.remaining.toFixed(1)}h to ${prog.next}h`;
+  $('level-name').textContent = `Level ${prog.level + 1}`;
+  $('track-fill').style.width = `${(prog.pct * 100).toFixed(1)}%`;
+  if (prog.next === null) {
+    $('level-next').textContent = `${prog.prev} h`;
+    $('level-sub').textContent = `Past your final milestone of ${prog.prev} hours.`;
+  } else {
+    $('level-next').textContent = `${prog.next} h`;
+    $('level-sub').textContent = `${prog.remaining.toFixed(1)} hours to Level ${prog.level + 2}`;
+  }
 
   const today = S.localDate();
-  const todayMin = S.byDay(sessions).get(today) || 0;
+  const todayMin = Math.round(S.byDay(sessions).get(today) || 0);
   const goal = settings.dailyGoalMin;
+  const streak = S.streak(sessions, today);
+  const avg = S.totalMinutes(S.lastNDays(sessions, 7, today)) / 7;
 
-  $('stat-today').textContent = S.formatHM(todayMin);
-  $('stat-today').classList.toggle('hit', goal > 0 && todayMin >= goal);
-  $('stat-streak').textContent = String(S.streak(sessions, today));
-  $('stat-avg').textContent = S.formatHM(S.totalMinutes(S.lastNDays(sessions, 7, today)) / 7);
-
-  // Today's goal ring. A goal of 0 means "no goal", so the widget is hidden and
-  // the hours ring re-centres by itself (.rings is a centred flex row).
+  // Today's dial. A goal of 0 means "no goal": the dial hides, the facts remain.
   const wrap = $('goal-wrap');
-  if (goal <= 0) {
-    wrap.hidden = true;
-  } else {
-    wrap.hidden = false;
+  wrap.hidden = goal <= 0;
+  if (goal > 0) {
     const left = Math.max(0, goal - todayMin);
     const met = left === 0;
-    $('goal-ring').innerHTML = ring(Math.min(1, todayMin / goal), {
-      color: met ? 'var(--good)' : 'var(--accent)',
-    });
-    $('goal-left').textContent = met ? '✓' : String(left);
+    $('goal-ring').innerHTML = dial(todayMin / goal);
+    $('goal-left').textContent = met ? 'Done' : String(left);
     $('goal-left').classList.toggle('met', met);
     $('goal-label').textContent = met
-      ? (todayMin > goal ? `+${S.formatHM(todayMin - goal)} over` : 'goal met')
-      : (left === 1 ? 'min left' : 'mins left');
+      ? (todayMin > goal ? `+${todayMin - goal} min` : 'goal met')
+      : 'min to go';
   }
+
+  $('stat-today').textContent = goal <= 0 ? `${spoken(todayMin)} today`
+    : todayMin >= goal ? `${todayMin} min today, goal met`
+    : `${todayMin} of ${goal} min today`;
+  $('stat-streak').textContent = streak === 0 ? 'Log anything to start a streak'
+    : streak === 1 ? '1 day in a row' : `${streak} days in a row`;
+  $('stat-avg').textContent = `${spoken(avg)} a day, last 7 days`;
 }
 
 const sortedSources = () =>
@@ -164,7 +213,7 @@ function renderHistory() {
     const rows = groups.get(date).sort((a, b) => b.createdAt - a.createdAt);
 
     const section = document.createElement('section');
-    section.className = 'card day';
+    section.className = 'plate day';
 
     const head = document.createElement('div');
     head.className = 'day-head';
@@ -195,14 +244,26 @@ function renderHistory() {
       title.className = 'entry-title';
       title.textContent = primary;
 
-      const meta = document.createElement('span');
-      meta.className = 'entry-meta';
-      meta.textContent = [
+      // Second line reads as a phrase ("Dreaming Spanish, video"); the note gets its own
+      // line so it isn't lost in a run of separators.
+      const kindWord = KIND_WORDS[s.kind] || s.kind;
+      const metaText = [
         source && source !== primary ? source : null,
-        kindLabel !== primary ? kindLabel : null,
-        s.note || null,
-      ].filter(Boolean).join(' · ');
-      main.append(title, meta);
+        kindLabel !== primary ? kindWord : null,
+      ].filter(Boolean).join(', ');
+      main.append(title);
+      if (metaText) {
+        const meta = document.createElement('span');
+        meta.className = 'entry-meta';
+        meta.textContent = metaText.charAt(0).toUpperCase() + metaText.slice(1);
+        main.append(meta);
+      }
+      if (s.note) {
+        const note = document.createElement('span');
+        note.className = 'entry-note';
+        note.textContent = s.note;
+        main.append(note);
+      }
 
       const mins = document.createElement('span');
       mins.className = 'entry-min';
@@ -243,7 +304,7 @@ function renderStats() {
   const series = S.lastNDays(sessions, 30, today);
   $('chart-30').innerHTML = barChart(series, { goalMin: settings.dailyGoalMin });
   $('chart-legend').textContent = settings.dailyGoalMin > 0
-    ? `Dashed line = your ${settings.dailyGoalMin} min daily goal. Solid bars met it.`
+    ? `Bright bars met your ${settings.dailyGoalMin} min goal, shown dashed.`
     : 'Set a daily goal in Settings to show a target line.';
 
   const total = S.totalMinutes(sessions);
@@ -273,8 +334,8 @@ function renderStats() {
     } else {
       const when = new Intl.DateTimeFormat(undefined, { month: 'long', day: 'numeric', year: 'numeric' })
         .format(S.parseLocalDate(p.date));
-      $('pace').textContent = `Averaging ${S.formatHM(p.perDay)} a day over the last 30 days. `
-        + `At that rate you reach ${prog.next}h in ${p.days} days — around ${when}.`;
+      $('pace').textContent = `Averaging ${spoken(p.perDay)} a day over the last 30 days. `
+        + `At that rate you reach ${prog.next} hours in ${p.days} days, around ${when}.`;
     }
   }
 
@@ -396,7 +457,7 @@ $('quick').replaceChildren(...QUICK_ADDS.map((m) => {
   const b = document.createElement('button');
   b.type = 'button';
   b.className = 'chip';
-  b.textContent = `+${m}m`;
+  b.textContent = `+${m} min`;
   b.addEventListener('click', async () => {
     await addSession({ minutes: m, date: S.localDate() });
     haptic();  // same action as Log session, so same feedback
@@ -438,7 +499,7 @@ $('add-form').addEventListener('submit', async (e) => {
   $('f-kind').value = 'video';
   $('f-date').value = S.localDate();
   haptic();
-  toast(known ? `Logged ${S.formatHM(minutes)}` : `Logged ${S.formatHM(minutes)} · saved "${source}"`);
+  toast(known ? `Logged ${S.formatHM(minutes)}` : `Logged ${S.formatHM(minutes)}. Added "${source}" to sources.`);
 });
 
 $('add-source-form').addEventListener('submit', async (e) => {

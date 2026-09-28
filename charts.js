@@ -4,20 +4,26 @@
 const esc = (s) => String(s).replace(/[&<>"]/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]));
 
 /**
- * Progress ring. pct is 0..1. No width/height attributes — CSS sizes it, so the
- * rings can shrink together on narrow screens without touching JS.
+ * Clock dial: 60 minute-ticks, lit clockwise from 12 in proportion to `fraction`.
+ * Every fifth tick is longer, like the hour marks on a watch face. With the default
+ * 60-minute goal each tick is literally one minute. Sized by CSS (viewBox only).
  */
-export function ring(pct, { size = 132, stroke = 11, color = 'var(--accent)' } = {}) {
-  const r = (size - stroke) / 2;
-  const c = 2 * Math.PI * r;
-  const off = c * (1 - Math.max(0, Math.min(1, pct)));
-  const mid = size / 2;
-  return `<svg viewBox="0 0 ${size} ${size}" class="ring" aria-hidden="true">
-    <circle cx="${mid}" cy="${mid}" r="${r}" fill="none" stroke="var(--line)" stroke-width="${stroke}"/>
-    <circle cx="${mid}" cy="${mid}" r="${r}" fill="none" stroke="${color}" stroke-width="${stroke}"
-      stroke-linecap="round" stroke-dasharray="${c.toFixed(2)}" stroke-dashoffset="${off.toFixed(2)}"
-      transform="rotate(-90 ${mid} ${mid})"/>
-  </svg>`;
+export function dial(fraction, { ticks = 60, size = 120 } = {}) {
+  const f = Math.max(0, Math.min(1, fraction));
+  const lit = Math.round(ticks * f);
+  const c = size / 2;
+  const outer = c - 3;
+  let marks = '';
+  for (let i = 0; i < ticks; i++) {
+    const a = (i / ticks) * 2 * Math.PI - Math.PI / 2;
+    const major = i % 5 === 0;
+    const inner = outer - (major ? 11 : 6);
+    const x1 = c + inner * Math.cos(a), y1 = c + inner * Math.sin(a);
+    const x2 = c + outer * Math.cos(a), y2 = c + outer * Math.sin(a);
+    marks += `<line class="tick${i < lit ? ' on' : ''}${major ? ' major' : ''}" `
+      + `x1="${x1.toFixed(2)}" y1="${y1.toFixed(2)}" x2="${x2.toFixed(2)}" y2="${y2.toFixed(2)}"/>`;
+  }
+  return `<svg viewBox="0 0 ${size} ${size}" class="dial-svg${f >= 1 ? ' full' : ''}" aria-hidden="true">${marks}</svg>`;
 }
 
 /**

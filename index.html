@@ -12,52 +12,63 @@
 <link rel="apple-touch-icon" href="icons/icon-180.png">
 
 <link rel="manifest" href="manifest.webmanifest">
-<meta name="theme-color" content="#6366f1" media="(prefers-color-scheme: light)">
-<meta name="theme-color" content="#0b0b10" media="(prefers-color-scheme: dark)">
+<meta name="theme-color" content="#EEF2F6" media="(prefers-color-scheme: light)">
+<meta name="theme-color" content="#0D1828" media="(prefers-color-scheme: dark)">
 <link rel="stylesheet" href="styles.css">
 </head>
 <body>
 
-<header class="bar">
+<!-- `.appbar`, not `.bar`: the Stats chart draws SVG rects with class "bar". -->
+<header class="appbar">
   <h1 id="title">Horas</h1>
-  <button id="settings-btn" class="icon-btn" aria-label="Settings">&#9881;</button>
+  <!-- Drawn, not the ⚙ character: iOS renders that as a grey 3D emoji. -->
+  <button id="settings-btn" class="icon-btn" aria-label="Settings">
+    <svg viewBox="0 0 24 24" aria-hidden="true" fill="none" stroke="currentColor"
+         stroke-width="2" stroke-linecap="round">
+      <circle cx="12" cy="12" r="6.2"/>
+      <circle cx="12" cy="12" r="2.3"/>
+      <path d="M12 2.6v2.3M12 19.1v2.3M2.6 12h2.3M19.1 12h2.3M5.4 5.4l1.6 1.6M17 17l1.6 1.6M5.4 18.6 7 17M17 7l1.6-1.6"/>
+    </svg>
+  </button>
 </header>
 
 <!-- ============================ LOG ============================ -->
 <main id="view-log" class="view">
-  <section class="hero">
-    <div class="rings">
-      <div class="ring-wrap">
-        <div id="ring"></div>
-        <div class="ring-center">
-          <strong id="total-hours">0</strong>
-          <span>hours</span>
-        </div>
-      </div>
-      <!-- Today's progress against the daily goal. app.js hides this when the
-           goal is set to 0, and the remaining ring re-centres on its own. -->
-      <div class="ring-wrap" id="goal-wrap">
-        <div id="goal-ring"></div>
-        <div class="ring-center">
-          <strong id="goal-left">0</strong>
-          <span id="goal-label">min left</span>
-        </div>
-      </div>
+  <!-- Hour meter: total hours on rolling digit drums, tenths drum in saffron.
+       app.js builds the drums once, then only moves the ones whose digit changed. -->
+  <section class="hero" aria-label="Your total">
+    <div id="meter" class="meter" role="img" aria-label="0 hours"></div>
+    <p class="meter-caption">hours of Spanish</p>
+
+    <div class="level">
+      <span id="level-name" class="level-name">Level 1</span>
+      <div class="track" aria-hidden="true"><div id="track-fill" class="track-fill"></div></div>
+      <span id="level-next" class="level-next">50 h</span>
     </div>
-    <p id="milestone-line" class="milestone"></p>
+    <p id="level-sub" class="level-sub"></p>
   </section>
 
-  <div class="stat-row">
-    <div class="stat"><strong id="stat-today">0m</strong><span>today</span></div>
-    <div class="stat"><strong id="stat-streak">0</strong><span>day streak</span></div>
-    <div class="stat"><strong id="stat-avg">0m</strong><span>7-day avg</span></div>
-  </div>
+  <!-- Today: a 60-tick clock dial against the daily goal. Hidden when the goal is 0. -->
+  <section class="today plate" aria-label="Today">
+    <div id="goal-wrap" class="dial">
+      <div id="goal-ring"></div>
+      <div class="dial-center">
+        <strong id="goal-left">0</strong>
+        <span id="goal-label">min to go</span>
+      </div>
+    </div>
+    <ul class="today-facts">
+      <li id="stat-today"></li>
+      <li id="stat-streak"></li>
+      <li id="stat-avg"></li>
+    </ul>
+  </section>
 
-  <h2 class="section-h">Quick add</h2>
+  <h2 class="section-h">Quick log</h2>
   <div id="quick" class="quick"></div>
 
-  <h2 class="section-h">Add a session</h2>
-  <form id="add-form" class="card form" autocomplete="off">
+  <h2 class="section-h">Log a session</h2>
+  <form id="add-form" class="plate form" autocomplete="off">
     <div class="field">
       <label for="f-minutes">Minutes</label>
       <input id="f-minutes" type="number" inputmode="numeric" min="1" max="1440" step="1" required placeholder="30">
@@ -101,24 +112,24 @@
 
 <!-- =========================== STATS =========================== -->
 <main id="view-stats" class="view" hidden>
-  <section class="card">
+  <section class="plate">
     <h2>Last 30 days</h2>
     <div id="chart-30"></div>
     <p id="chart-legend" class="muted"></p>
   </section>
-  <section class="card">
+  <section class="plate">
     <h2>Totals</h2>
     <dl id="totals" class="diag"></dl>
   </section>
-  <section class="card">
+  <section class="plate">
     <h2>Pace</h2>
     <p id="pace" class="muted"></p>
   </section>
-  <section class="card">
+  <section class="plate">
     <h2>By source</h2>
     <div id="by-source"></div>
   </section>
-  <section class="card">
+  <section class="plate">
     <h2>By type</h2>
     <div id="by-kind"></div>
   </section>
@@ -126,7 +137,7 @@
 
 <!-- ========================= SETTINGS ========================== -->
 <main id="view-settings" class="view" hidden>
-  <section class="card">
+  <section class="plate">
     <h2>Daily goal</h2>
     <div class="field">
       <label for="s-goal">Minutes per day</label>
@@ -134,7 +145,7 @@
     </div>
   </section>
 
-  <section class="card">
+  <section class="plate">
     <h2>Milestones</h2>
     <p class="muted">Hour targets, comma separated. Defaults follow the Dreaming Spanish
        roadmap — check them against the source if the exact figures matter to you.</p>
@@ -145,7 +156,7 @@
     <button id="save-settings" class="primary">Save settings</button>
   </section>
 
-  <section class="card">
+  <section class="plate">
     <h2>Sources</h2>
     <p class="muted">Shortcuts for the Source field, so you don't retype them. Removing
        one only takes it out of the dropdown — logged sessions keep their hours.</p>
@@ -156,7 +167,7 @@
     </form>
   </section>
 
-  <section class="card">
+  <section class="plate">
     <h2>Backup</h2>
     <p class="muted">Everything is stored on this device only. <strong>Deleting the Home
        Screen icon deletes your history with it.</strong> Export regularly.</p>
@@ -168,12 +179,12 @@
     </div>
   </section>
 
-  <section class="card">
+  <section class="plate">
     <h2>Diagnostics</h2>
     <dl id="diag" class="diag"></dl>
   </section>
 
-  <section class="card danger-card">
+  <section class="plate danger-plate">
     <h2>Danger zone</h2>
     <button id="wipe-btn" class="danger">Delete all sessions</button>
   </section>

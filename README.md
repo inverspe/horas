@@ -49,10 +49,11 @@ Open ⚙ → Diagnostics to confirm `Installed: yes` and `Service worker: regist
 
 ## Using it
 
-- **Log** — headline total, progress ring to the next milestone, a daily-goal ring
-  counting down minutes left, today/streak/7-day-avg, six quick-add buttons, and a full
-  form for backdating or adding a source and note. After logging, the form clears and
-  Date resets to today.
+- **Log** — your total on an hour meter (rolling digit drums, tenths in saffron), a
+  track to the next milestone, a 60-tick clock dial counting down today's goal alongside
+  today's minutes, streak and 7-day average, six quick-log buttons, and a full form for
+  backdating or adding a source, title and note. After logging, the form clears and Date
+  resets to today.
 
 > **Haptics:** logging calls a best-effort `haptic()`. `navigator.vibrate` covers
 > Android; **iOS Safari does not implement it at all**. The `<input type="checkbox"
